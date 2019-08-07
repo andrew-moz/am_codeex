@@ -1,0 +1,517 @@
+
+
+<div class="small-content finalize display-flex" data-step="5" data-intro="Here you can select who receives your Xmetryx Survey invitations and reminders. <br><br>We take care of sending the invitations to team members. We'll send them automatically 14-days before the Xmetryx Survey closes (or 5-days before for surveys that recur weekly), to give people plenty of time to respond. <br><br>If your close date is less than 14-days from today, we will send the invitations as soon as you click <em>Send</em>.">
+
+  <%= hidden_field_tag 'survey_id', survey.id %>
+
+  <div class="checkbox-bloc checkbox-group display-flex row-flex-wrap" style="width: 100%;">
+    <div class="checkbox-group-label" id="send-invitation-to-label"></div>
+    <div class=survey-team-members-group data-step="6" data-intro="You can choose to send invitations to All Team Members, or to a specific Group...">
+      <% team_members_groups.each do |group| %>
+        <%= check_box_tag 'team_member_group', group, false, { id: group, class: 'survey_team_members_group', 'data-ays-ignore': 'true' } %>
+        <%= label_tag 'survey_team_members_group', group, for: group %>
+      <% end %>
+      <%= check_box_tag 'team_member_all', true, current_user.team_members.count == survey.survey_team_members_ids.count, :'data-ays-ignore' => 'true' %>
+      <%= label_tag 'All', 'All', for: 'team_member_all' %>
+    </div>
+    <div class="fold-team-members" style="margin-left: 10px;" data-step="7" data-intro="...or, expand this list and select individual team members.<br><br><em>Hint:</em> Hover over any team member to see their email address.">
+      <i class="fas fa-plus red expand-invitees-icon" style="text-align: right; font-size: 1.35em; margin-bottom: 0.7%;"><span class="expand-team-members" style="color: #222">Select Individual Team Members</span></i>
+      <div class="survey-team-members no-display">
+        <% current_user.team_members.active.each do |tm| %>
+          <% checked = survey.survey_team_members_ids.to_a.map(&:to_i).include?(tm.id) %>
+          <div class="display-inline-flex flex-align-items-baseline">
+            <%= check_box_tag 'survey[team_members_ids][]', tm.id, checked, {
+                disabled: checkbox_state(status, checked),
+                class: 'survey_team_members',
+                id: "survey_team_members_id_#{tm.id}",
+                data: { group: tm.own_groups },
+                'data-ays-ignore': 'true'
+            } %>
+            <%= label_tag "survey_team_members_id_#{tm.id}", tm.name, title: tm.email %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="member-bloc no-display">
+    <p>Looks like you haven't set up your team yet.</p>
+    <p>Click <a href="<%= team_members_path %>" style="text-decoration:underline" target="_blank" title="Add Team Members">here</a>
+      to set up new members and send invitations directly from Xmetryx.</p>
+  </div>
+
+  <div class="btn-row" style="margin: 30px 0 0; padding: 0;">
+    <a id="submit-add-participants-btn" class="save-btn" style="cursor: pointer; float: right;">Save</a>
+  </div>
+
+</div>
+
+<script type="text/javascript">
+
+  <% if current_user.team_members.count == survey.survey_team_members_ids.count %>
+    $('.fold-team-members>i').trigger('click');
+  <% end %>
+
+  $(document).ready(function() {
+
+    const finalizePage = new Xmx.FinalizePage({
+        teamMemberCount: <%= current_user.team_members.count %>,
+        surveyId: <%= survey.id %>,
+        recurringType: '<%= survey.survey_recurring_info.try(:rec_type) %>',
+        defaultMessagePreview: '<%= raw Survey::DEFAULT_ADD_HASH[:additional_text][:message_preview] %>'
+    });
+
+    finalizePage.allTeamMembersHandler()
+        .teamMembersGroupHandler()
+        .foldTeamMembersHandler()
+
+  })
+</script>
+
+
+<!-- ============================================================= -->
+
+
+<section class="pdf-background">
+  <!--  <button class="no-print print-button" style="" onClick="window.print()">Print Report</button>-->
+  <div class="pdf-document">
+
+    <div class="pdf-page" id="page1">
+      <div class="pdf-header h-format" style="font-size: 40px;">Xmetryx TRM Experience Report</div>
+
+      <div class="pdf-printable-area">
+        <div class="div-margin-top">
+          <h3 class="center">for <span class="red"><%= @survey&.user&.name %></span> </h3>
+          <h3 class="center"><%= @survey.name %></h3>
+          <h3 class="center"><%= @survey&.close_date&.strftime('%e %b %Y') %></h3>
+        </div>
+
+        <h2 style="padding-bottom: 3px;">Contents</h2>
+        <div class="bar_large"></div>
+
+        <div class="link">
+          <h4><a href="#page2" class="contents-link">Executive Summary</a></h4>
+          <h4><a href="#page2" class="contents-link"><span class="bar_list">-</span>Questions</a></h4>
+          <h4><a href="#page2" class="contents-link"><span class="bar_list">-</span>Results & Stats</a></h4>
+          <h4 class="left h-format"><a href="#page3" class="contents-link">Team Relationship Map Results</a></h4>
+          <h4>Comments by Quadrant</h4>
+          <h4><a href="#page4" class="contents-link"><span class="bar_list">-</span>Engaging</a></h4>
+          <h4><a href="#page4" class="contents-link"><span class="bar_list">-</span>Deteriorating</a></h4>
+          <h4><a href="#page5" class="contents-link"><span class="bar_list">-</span>Disengaging</a></h4>
+          <h4><a href="#page5" class="contents-link"><span class="bar_list">-</span>Developing</a></h4>
+          <h4 class="left h-format"><a href="#page6" style="text-decoration: none; color: #484849;">Whiteboard Notes & Actions</a></h4>
+          <h4>References</h4>
+          <h4><a href="#page7" class="contents-link"><span class="bar_list">-</span>Reading the Team Relationship Map</a></h4>
+          <h4><a href="#page8" class="contents-link"><span class="bar_list">-</span>Understanding the Relationship Strength Score (RSS)</a></h4>
+        </div>
+      </div>
+
+    </div>
+    <div class="page-break"></div>
+
+
+    <div class="pdf-page" id="page2">
+      <div class="pdf-header">
+        <h1>Executive Summary</h1>
+        <h4 class="h4-header"><%= @survey.name %> - <%= @survey&.close_date&.strftime('%e %b %Y') %></h4>
+      </div>
+
+      <div class="pdf-printable-area ">
+        <div class="small-margin-bottom">
+          <h2 class="small-margin-top" style="padding-top: 10px;">Xmetryx Feedback Questions</h2>
+          <div class="bar_small "></div>
+
+          <div class="" style="padding: 0;">
+            <div class="small-margin-bottom">
+              <span class="red">Primer:</span>
+              <%= raw t('surveys.questions.first.text',
+                        sentence: "<ins class='topic_text'>#{@survey.full_topic}</ins>",
+                        is_last: "<ins class='past'>#{last_word(@survey.time_frame)}</ins>",
+                        time_frame: "<ins class='time_period_text'>#{@survey.time_frame}</ins>",
+                        leader_name: "<ins class='name_placeholder'>#{@survey.leader_name}</ins>") %>
+            </div>
+            <div class="small-margin-bottom">
+              <span class="red">Experience:</span>
+              <%= raw t('surveys.questions.second.text',
+                        sentence: "<ins class='topic_text'>#{@survey.full_topic}</ins>",
+                        is_last: "<ins class='past'>#{last_word(@survey.time_frame)}</ins>",
+                        time_frame: "<ins class='time_period_text'>#{@survey.time_frame}</ins>",
+                        leader_name: "<ins class='name_placeholder'>#{@survey.leader_name}</ins>") %>
+            </div>
+            <div class="small-margin-bottom">
+              <span class="red">Expectation:</span>
+              <%= raw t('surveys.questions.third.text',
+                        sentence: "<ins class='topic_text'>#{@survey.full_topic}</ins>",
+                        is_last: "<ins class='past'>#{last_word(@survey.time_frame)}</ins>",
+                        time_frame: "<ins class='time_period_text'>#{@survey.time_frame}</ins>",
+                        leader_name: "<ins class='name_placeholder'>#{@survey.leader_name}</ins>") %>
+            </div>
+          </div>
+        </div>
+
+        <div class="small-margin-bottom">
+          <h2 style="padding: 0;">Results & Stats</h2>
+          <div class="bar_small small-margin-bottom"></div>
+
+          <div id="pdf_rel" class="display-flex row-flex-nowrap div-margin-bottom">
+            <div class="half-width column-flex-nowrap flex-align-items-ctr">
+              <div class="graphs-header mini-margin-bottom">Team Relationships</div>
+              <div id="tm_rel" class="tm-rel">
+                <%#= image_tag wicked_pdf_asset_base64(@survey.team_relationship_chart) unless Rails.env.test? %>
+                <img alt="Team Relationships" src="<%= @survey.team_relationship_chart %>"/>
+              </div>
+            </div>
+            <div class="half-width column-flex-nowrap flex-align-items-ctr">
+              <div class="graphs-header">Relationship Strength Score</div>
+              <div id="rss" class="rss">
+                <%#= image_tag wicked_pdf_asset_base64(@survey.team_strength_chart) unless Rails.env.test? %>
+                <img alt="Relationship Strength Score" src="<%= @survey.team_strength_chart %>"/>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bar_small small-margin-bottom"></div>
+
+        <div id="pdf_res" class="display-flex row-flex-nowrap">
+          <div class="half-width column-flex-nowrap flex-align-items-ctr">
+            <div class="graphs-header">How many people responded?</div>
+            <div id="tm_res" class="tm-res" style="font-family: 'Quattrocento Sans'"><%= @survey&.total_responded %>%</div>
+            <div class="center" style="font-size: 18px;">
+              of <%= @survey&.survey_answers.each { |t| t.team_member }.count %> People who were invited,
+              <br> <%= @survey&.survey_answers.finished.each { |t| t.team_member }.count %> completed the survey
+            </div>
+          </div>
+          <div class="half-width column-flex-nowrap flex-align-items-ctr">
+            <div class="graphs-header">When did the survey start / end?</div>
+            <div id="res_time" class="small-margin-top" style="height: 220px; max-height: 220px; text-align: -webkit-center;">
+              <div id="calendar-container" class="calendar-container">
+                <div id="calendar-header" class="calendar-header">
+                  <span id="calendar-month-year" class="calendar-month-year"><%= "#{@survey&.start_date&.strftime("%B")} #{@survey&.start_date&.year}" %></span>
+                </div>
+                <div id="calendar-dates" class="calendar-dates"><%= pdf_calendar(@survey) %></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+    <div class="page-break"></div>
+
+    <div class="pdf-page" id="page3">
+      <div class="pdf-header">
+        <h1>Team Relationship Map Results</h1>
+        <h4 class="h4-header"><%= @survey.name %> - <%= @survey&.close_date&.strftime('%e %b %Y') %></h4>
+      </div>
+
+      <div class="pdf-printable-area">
+        <div class="center">
+          <h3 class="small-margin-top red" style="padding: 30px 0;">Relationship Strength Score: <%= @survey&.lei %></h3>
+        </div>
+
+        <div>
+          <%#= image_tag(wicked_pdf_asset_base64(@survey.maps_chart), class: 'survey-map-image', style: 'margin: 0 3%;') unless Rails.env.test? %>
+          <img alt="Relationship Strength Score" src="<%= @survey.maps_chart %>" class="survey-map-image" style="margin: 0 3%;" />
+        </div>
+      </div>
+
+    </div>
+    <div class="page-break"></div>
+
+
+    <div class="pdf-page" id="page4" style="display: block">
+      <div class="pdf-header">
+        <h1>Comments by Quadrant</h1>
+        <h4 class="h4-header"><%= @survey.name %> - <%= @survey&.close_date&.strftime('%e %b %Y') %></h4>
+      </div>
+
+      <div class="pdf-printable-area small-margin-bottom">
+        <table class="div-margin-bottom">
+          <tbody>
+          <tr>
+            <td colspan="2">
+              <h2 class="small-margin-top" style="padding-top: 10px; padding-bottom: 5px;">Engaging</h2>
+              <div class="bar_large"></div>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2"></td>
+          </tr>
+          <tr class="cell-align-top" >
+            <td style="width: 40%;">
+              <%= image_tag(wicked_pdf_asset_base64('pdf_report/quadrants-engaging.png'), class: 'quadrant-image') %>
+            </td>
+            <td style="width: 60%">
+              <table>
+                <tr>
+                  <td>
+                    <div class=" ">
+                      <h5 class="red quest-header">What had the greatest impact on your experience?</h5>
+                    </div>
+                  </td>
+                </tr>
+                <% pdf_presenter.engaging_1.each do |stm| %>
+                  <tr>
+                    <td>
+                      <ul class="pdf-text-format" >
+                        <li><%= stm.z %></li>
+                      </ul>
+                    </td>
+                  </tr>
+                <% end %>
+                <tr style="height: 20px;"></tr>
+              </table>
+              <table>
+                <tr >
+                  <td>
+                    <div class=" ">
+                      <h5 class="red quest-header">What would make your experience better?</h5>
+                    </div>
+                  </td>
+                </tr>
+                <% pdf_presenter.engaging_2.each do |stm| %>
+                  <tr>
+                    <td>
+                      <ul class="pdf-text-format" >
+                        <li><%= stm.z %></li>
+                      </ul>
+                    </td>
+                  </tr>
+                <% end %>
+                <% pdf_presenter.engaging_3.each do |stm| %>
+                  <tr>
+                    <td>
+                      <ul class="pdf-text-format" >
+                        <li><%= stm.z %></li>
+                      </ul>
+                    </td>
+                  </tr>
+                <% end %>
+                <% pdf_presenter.engaging_4.each do |stm| %>
+                  <tr>
+                    <td>
+                      <ul class="pdf-text-format" >
+                        <li><%= stm.z %></li>
+                      </ul>
+                    </td>
+                  </tr>
+                <% end %>
+              </table>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+        <table class="small-margin-bottom">
+          <tbody>
+          <tr>
+            <td colspan="2">
+              <h2 class="small-margin-top" style="padding-bottom: 5px;">Deteriorating</h2>
+              <div class="bar_large"></div>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2"></td>
+          </tr>
+          <tr class="cell-align-top" >
+            <td style="width: 40%;">
+              <div class="pdf-hw-alt_40 ">
+                <%= image_tag(wicked_pdf_asset_base64('pdf_report/quadrants-deteriorating.png'), class: 'quadrant-image') %>
+              </div>
+            </td>
+            <td style="width: 60%">
+              <table>
+                <tr>
+                  <td>
+                    <div class="">
+                      <h5 class="red quest-header">What did you expect that you did not experience?</h5>
+                    </div>
+                  </td>
+                </tr>
+                <% pdf_presenter.deteriorating.each do |stm| %>
+                  <tr>
+                    <td>
+                      <ul class="pdf-text-format" >
+                        <li><%= stm.z %></li>
+                      </ul>
+                    </td>
+                  </tr>
+                <% end %>
+              </table>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="page-break"></div>
+
+
+    <div class="pdf-page" id="page5" style="display: block">
+      <div class="pdf-header">
+        <h1>Comments by Quadrant</h1>
+        <h4 class="h4-header"><%= @survey.name %> - <%= @survey&.close_date&.strftime('%e %b %Y') %></h4>
+      </div>
+
+      <div class="pdf-printable-area" style="display: block">
+        <table class="div-margin-bottom">
+          <tbody>
+          <tr>
+            <td colspan="2">
+              <h2 class="small-margin-top" style="padding-top: 10px; padding-bottom: 5px;">Disengaging</h2>
+              <div class="bar_large"></div>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2"></td>
+          </tr>
+          <tr class="cell-align-top" >
+            <td style="width: 40%;">
+              <div class="pdf-hw-alt_40 ">
+                <%= image_tag(wicked_pdf_asset_base64('pdf_report/quadrants-disengaging.png'), class: 'quadrant-image') %>
+              </div>
+            </td>
+            <td style="width: 60%">
+              <table>
+                <tr>
+                  <td>
+                    <div class=" ">
+                      <h5 class="red quest-header">What needs to change to improve your experience?</h5>
+                    </div>
+                  </td>
+                </tr>
+                <% pdf_presenter.disengaging.each do |stm| %>
+                  <tr>
+                    <td>
+                      <ul class="pdf-text-format" >
+                        <li><%= stm.z %></li>
+                      </ul>
+                    </td>
+                  </tr>
+                <% end %>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2" style="height: 20px"></td>
+          </tr>
+          </tbody>
+        </table>
+        <table class="small-margin-bottom">
+          <tbody>
+          <tr>
+            <td colspan="2">
+              <h2 class="small-margin-top" style="padding-bottom: 5px;">Developing</h2>
+              <div class="bar_large"></div>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2"></td>
+          </tr>
+          <tr class="cell-align-top" >
+            <td style="width: 40%;">
+              <div class="pdf-hw-alt_40 ">
+                <%= image_tag(wicked_pdf_asset_base64('pdf_report/quadrants-developing.png'), class: 'quadrant-image') %>
+              </div>
+            </td>
+            <td style="width: 60%;">
+              <table>
+                <tr>
+                  <td>
+                    <div class="">
+                      <h5 class="red quest-header">What did you experience that you did not expect?</h5>
+                    </div>
+                  </td>
+                </tr>
+                <% pdf_presenter.developing.each do |stm| %>
+                  <tr>
+                    <td>
+                      <ul class="pdf-text-format" >
+                        <li><%= stm.z %></li>
+                      </ul>
+                    </td>
+                  </tr>
+                <% end %>
+              </table>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="page-break"></div>
+
+
+    <div class="pdf-page" id="page6">
+      <div class="pdf-header">
+        <h1>Team Notes & Actions</h1>
+        <h4 class="h4-header"><%= @survey.name %> - <%= @survey&.close_date&.strftime('%e %b %Y') %></h4>
+      </div>
+
+      <div class="pdf-printable-area">
+        <div class="notes-and-actions-table">
+          <table>
+            <tr>
+              <th class="tc1-2 t-head tch1-2">Gap</th>
+              <th class="tc1-2 t-head tch1-2">Action</th>
+              <th class="tc3 t-head">Owner</th>
+              <th class="tc4 t-head">Due Date</th>
+            </tr>
+
+            <% @survey.parent_survey.survey_notes.each do |note| %>
+              <tr>
+                <td class="tc1-2"><%= note.result %></td>  <!-- Gap -->
+                <td class="tc1-2"><%= note.action %></td>
+                <td class="tc3"><%= note.action_owner %></td>
+                <td class="tc4"><%= note.timing %></td>  <!-- date for follow up -->
+              </tr>
+            <% end %>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="page-break"></div>
+
+
+    <div class="pdf-page" id="page7">
+      <div class="pdf-header">
+        <h1>Team Relationship Map Reference</h1>
+        <h4 class="h4-header"><%= @survey.name %> - <%= @survey&.close_date&.strftime('%e %b %Y') %></h4>
+      </div>
+
+      <div class="pdf-printable-area">
+        <div class="pdf-text-format small-margin-top small-margin-bottom" style="padding-top: 10px" >
+          <span class="red">The Xmetryx TRM Experience Map</span> provides a rich picture of team experiences vs their expectations of key relationships that drive energy and effectiveness.
+        </div>
+        <div class="bar_small div-margin-bottom"></div>
+
+        <div style="padding-top: 10px">
+          <%= image_tag(wicked_pdf_asset_base64('pdf_report/quadrant-descriptions-2018.png'), class: 'quadrant-desc-image', style: 'margin: 0 5%;') %>
+        </div>
+      </div>
+    </div>
+    <div class="page-break"></div>
+
+    <div class="pdf-page" id="page8">
+      <div class="pdf-header">
+        <h1>Relationship Strength Score Reference</h1>
+        <h4 class="h4-header"><%= @survey.name %> - <%= @survey&.close_date&.strftime('%e %b %Y') %></h4>
+      </div>
+
+      <div class="pdf-printable-area">
+        <div class="pdf-text-format small-margin-top small-margin-bottom" >
+          <span class="red">Relationship Strength Score:</span> is calculated by subtracting the percentage of weak or damaged relationships from the strong relationships. The scale ranges from -100 to +100. Your goal is to get as close to 100 as possible.
+        </div>
+        <div class="bar_large div-margin-bottom"></div>
+
+        <div style="padding-top: 10px">
+          <%= image_tag(wicked_pdf_asset_base64('pdf_report/quadrants-2019-rss-diagram.png'), class: 'quadrant-desc-image', style: 'margin: 0 5%;') %>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
